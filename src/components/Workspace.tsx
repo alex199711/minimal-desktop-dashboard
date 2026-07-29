@@ -34,24 +34,27 @@ export function Workspace({ mode = 'both' }: { mode?: 'temp' | 'archived' | 'bot
     
     const newName = `${typeNames[type]} ${filteredItems.length + 1}`;
     
-    addWorkspaceItem({
-      name: newName,
-      type,
-      status: 'temp'
-    });
     setIsAddMenuOpen(false);
 
     // Call Electron API to create actual files and open applications
     if (window.ipcRenderer) {
       try {
-        await window.ipcRenderer.invoke('create-file', { type, name: newName });
+        const result = await window.ipcRenderer.invoke('create-file', { type, name: newName });
+        if (!result?.success) throw new Error(result?.error || '创建失败');
+        addWorkspaceItem({ name: newName, type, status: 'temp', path: result.path });
       } catch (err) {
         console.error('Failed to create file in system:', err);
       }
     } else {
       // Browser fallback warning
-      alert(`已在看板中创建 [${newName}]。\n注意：要在系统中真实创建文件并打开软件，请使用桌面客户端。`);
+      addWorkspaceItem({ name: newName, type, status: 'temp' });
     }
+  };
+
+  const handleOpen = async (path?: string) => {
+    if (!path || !window.ipcRenderer) return;
+    const result = await window.ipcRenderer.invoke('open-path', path);
+    if (!result?.success) alert(result?.error || '无法打开该项目');
   };
 
   return (
@@ -148,7 +151,10 @@ export function Workspace({ mode = 'both' }: { mode?: 'temp' | 'archived' | 'bot
                 onDragStart={(e: any) => {
                   e.dataTransfer.setData('application/workspace-item', item.id);
                 }}
-                className="group p-4 rounded-2xl bg-foreground/10 border border-foreground/10 hover:bg-foreground/10 hover:border-foreground/10 transition-all flex flex-col items-center gap-3 cursor-pointer relative overflow-hidden"
+                onDoubleClick={() => handleOpen(item.path)}
+                onKeyDown={(event) => event.key === 'Enter' && handleOpen(item.path)}
+                tabIndex={0}
+                className="group p-4 rounded-2xl bg-foreground/10 border border-foreground/10 hover:bg-foreground/10 hover:border-foreground/10 transition-all flex flex-col items-center gap-3 cursor-pointer relative overflow-hidden focus-visible:border-theme-accent"
               >
                 {/* Icon Rendering */}
                 <div className="relative">

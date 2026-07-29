@@ -11,10 +11,10 @@ interface PriorityKnobProps {
 }
 
 const priorities = [
-  { id: 1 as const, dot: 'bg-q1', angle: -45, title: '重要且紧急' }, // Top Right
-  { id: 2 as const, dot: 'bg-q2', angle: 45, title: '重要不紧急' },  // Bottom Right
-  { id: 3 as const, dot: 'bg-q3', angle: 135, title: '紧急不重要' }, // Bottom Left
-  { id: 4 as const, dot: 'bg-q4', angle: -135, title: '不重要不紧急' } // Top Left
+  { id: 1 as const, dot: 'bg-q1', x: 16, y: -16, corner: '-right-[5px] -top-[5px]', title: '重要且紧急' }, // 右上
+  { id: 2 as const, dot: 'bg-q2', x: -16, y: -16, corner: '-left-[5px] -top-[5px]', title: '重要不紧急' },  // 左上
+  { id: 3 as const, dot: 'bg-q3', x: 16, y: 16, corner: '-right-[5px] -bottom-[5px]', title: '不重要紧急' }, // 右下
+  { id: 4 as const, dot: 'bg-q4', x: -16, y: 16, corner: '-left-[5px] -bottom-[5px]', title: '不紧急不重要' } // 左下
 ];
 
 export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePriority }: PriorityKnobProps) {
@@ -31,7 +31,7 @@ export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePr
       {/* 中心的可点击完成区域 */}
       <div
         className={cn(
-          "relative w-[18px] h-[18px] rounded-full border-[1.5px] flex items-center justify-center transition-colors cursor-pointer bg-card z-20",
+          "relative w-[20px] h-[20px] rounded-full border-[1.5px] flex items-center justify-center transition-colors cursor-pointer bg-card z-20",
           completed ? "border-foreground/10 bg-foreground/10" : "border-foreground/10 hover:border-foreground/10"
         )}
         onClick={(e) => {
@@ -40,9 +40,9 @@ export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePr
         }}
         title="标记完成"
       >
-        {completed && <Check className="w-2.5 h-2.5 text-foreground/50" strokeWidth={3} />}
+        {completed && <Check className="w-3 h-3 text-foreground/50" strokeWidth={3} />}
         {!completed && !isHovered && (
-          <div className={cn("absolute -right-[6px] -top-[6px] w-[6px] h-[6px] rounded-full shadow-md", pInfo.dot)} />
+          <div className={cn("absolute w-[7px] h-[7px] rounded-full shadow-md transition-all duration-300", pInfo.corner, pInfo.dot)} />
         )}
       </div>
 
@@ -50,18 +50,13 @@ export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePr
       <AnimatePresence>
         {!completed && isHovered && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.15 }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="absolute inset-0 z-10 pointer-events-none"
           >
             {priorities.map((p) => {
-              // 计算基于中心的偏移量
-              const rad = (p.angle - 90) * (Math.PI / 180);
-              const radius = 14; // 距离中心的半径
-              const x = Math.cos(rad) * radius;
-              const y = Math.sin(rad) * radius;
               const isSelected = p.id === quadrant;
 
               return (
@@ -71,10 +66,10 @@ export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePr
                   style={{
                     left: '50%',
                     top: '50%',
-                    marginLeft: x - 8, // 8 是容器一半宽度
-                    marginTop: y - 8,
-                    width: 16,
-                    height: 16,
+                    marginLeft: p.x - 12, // 12 是宽高的中心点 (24/2)
+                    marginTop: p.y - 12,
+                    width: 24,
+                    height: 24,
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -85,9 +80,9 @@ export function PriorityKnob({ quadrant, completed, onToggleComplete, onChangePr
                 >
                   <div 
                     className={cn(
-                      "rounded-full transition-all shadow-md group-hover:scale-125",
+                      "rounded-full transition-all duration-200 shadow-md group-hover:scale-125",
                       p.dot,
-                      isSelected ? "w-2.5 h-2.5" : "w-[6px] h-[6px] opacity-60 group-hover:opacity-100"
+                      isSelected ? "w-4 h-4 shadow-lg scale-110" : "w-3 h-3 opacity-70 group-hover:opacity-100"
                     )}
                   />
                 </div>

@@ -1,11 +1,12 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { Home } from './pages/Home';
+import { MotionConfig } from 'framer-motion';
 
 import { useStore } from './store/useStore';
 import { useEffect } from 'react';
 
 function App() {
-  const { glassOpacity, themeMode, accentColor } = useStore();
+  const { glassOpacity, themeMode, accentColor, fontFamily, panelRadius, enableAnimations } = useStore();
 
   useEffect(() => {
     // 动态调整全局玻璃态透明度
@@ -45,12 +46,40 @@ function App() {
     }
   }, [accentColor]);
 
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (fontFamily === 'serif') {
+      root.style.setProperty('--font-sans', 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif');
+      root.style.setProperty('--font-display', 'ui-serif, Georgia, Cambria, "Times New Roman", Times, serif');
+    } else if (fontFamily === 'mono') {
+      root.style.setProperty('--font-sans', 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace');
+      root.style.setProperty('--font-display', 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace');
+    } else {
+      root.style.setProperty('--font-sans', "'Inter', sans-serif");
+      root.style.setProperty('--font-display', "'Space Grotesk', sans-serif");
+    }
+  }, [fontFamily]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--radius', `${panelRadius}px`);
+  }, [panelRadius]);
+
+  useEffect(() => {
+    if (!enableAnimations) {
+      document.body.classList.add('disable-animations');
+    } else {
+      document.body.classList.remove('disable-animations');
+    }
+  }, [enableAnimations]);
+
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
-    </Router>
+    <MotionConfig transition={enableAnimations ? undefined : { duration: 0 }}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </Router>
+    </MotionConfig>
   );
 }
 

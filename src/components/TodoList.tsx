@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore, TodoItem } from '../store/useStore';
 import { cn } from '../lib/utils';
-import { Check, Trash2, Calendar as CalendarIcon, GripVertical, ArrowDownAZ, Clock as ClockIcon, Bell, ChevronLeft, ChevronRight, ArrowLeft, Share, Link as LinkIcon, QrCode, CloudSun, Wind, Droplets, Plus, Clock } from 'lucide-react';
+import { Check, Trash2, Calendar as CalendarIcon, GripVertical, ArrowDownAZ, Clock as ClockIcon, Bell, ChevronLeft, ChevronRight, ArrowLeft, Share, Link as LinkIcon, QrCode, CloudSun, Wind, Droplets, Plus, Clock, RefreshCw } from 'lucide-react';
 import { Reorder, AnimatePresence, motion } from 'framer-motion';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths } from 'date-fns';
 import { CustomTimePicker } from './CustomTimePicker';
@@ -39,9 +39,11 @@ const AutoResizeTextarea = ({ value, onChange, onBlur, onKeyDown, autoFocus, pla
 };
 
 export function TodoList() {
-  const { todos, toggleTodo, deleteTodo, selectedDate, setSelectedDate, reorderTodos, updateTodoReminder, updateTodoDetails, toggleClock, updateTodoQuadrant } = useStore();
+  const { todos, toggleTodo, deleteTodo, mergeTodoistTodos, linkTodoToTodoist, selectedDate, setSelectedDate, reorderTodos, updateTodoReminder, updateTodoDetails, toggleClock, updateTodoQuadrant } = useStore();
   const [hoveredTodoId, setHoveredTodoId] = useState<string | null>(null);
-  
+  const [todoistConnected, setTodoistConnected] = useState(false);
+  const [todoistSyncing, setTodoistSyncing] = useState(false);
+
   // Sort Toggle State
   const [sortMode, setSortMode] = useState<'manual' | 'priority' | 'time'>('manual');
   const [originalOrder, setOriginalOrder] = useState<string[]>([]);
@@ -57,10 +59,89 @@ export function TodoList() {
   // Time & Weather State
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isWeatherOpen, setIsWeatherOpen] = useState(false);
+  const [weatherData, setWeatherData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  const applyTodoistTasks = (tasks: any[]) => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    mergeTodoistTodos(tasks.map((task) => ({
+      id: `todoist-${task.id}`,
+      externalId: String(task.id),
+      source: 'todoist' as const,
+      title: task.content,
+      content: task.description || '',
+      quadrant: Math.max(1, Math.min(4, 5 - (task.priority || 1))) as 1 | 2 | 3 | 4,
+      completed: false,
+      createdAt: task.added_at || new Date().toISOString(),
+      date: task.due?.date || today,
+    })));
+  };
+
+  const syncTodoist = async () => {
+    if (!window.ipcRenderer) return;
+    setTodoistSyncing(true);
+    try {
+      let result;
+      if (!todoistConnected) {
+        const token = window.prompt('请输入 Todoist API Token（仅保存在本次运行内存中，关闭软件后自动清除）');
+        if (!token) return;
+        result = await window.ipcRenderer.invoke('todoist-connect', token);
+      } else {
+        result = await window.ipcRenderer.invoke('todoist-refresh');
+      }
+      if (!result?.success) throw new Error(result?.error || 'Todoist 同步失败');
+      applyTodoistTasks(result.tasks || []);
+      setTodoistConnected(true);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : 'Todoist 同步失败');
+    } finally {
+      setTodoistSyncing(false);
+    }
+  };
+
+  const handleToggleTodo = async (todo: TodoItem) => {
+    if (todo.source === 'todoist' && todo.externalId && !todo.completed) {
+      const result = await window.ipcRenderer?.invoke('todoist-close-task', todo.externalId);
+      if (result && !result.success) {
+        window.alert(result.error || 'Todoist 更新失败');
+        return;
+      }
+    }
+    toggleTodo(todo.id);
+  };
+
+  const handleDeleteTodo = async (todo: TodoItem) => {
+    if (todo.source === 'todoist' && todo.externalId) {
+      const result = await window.ipcRenderer?.invoke('todoist-delete-task', todo.externalId);
+      if (result && !result.success) {
+        window.alert(result.error || 'Todoist 删除失败');
+        return;
+      }
+    }
+    deleteTodo(todo.id);
+  };
+
+  useEffect(() => {
+    // Fetch real weather data from Open-Meteo API
+    // Using coordinates for Shenzhen as an example (22.54, 114.06)
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=22.54&longitude=114.06&current_weather=true&hourly=relativehumidity_2m&windspeed_unit=kmh')
+      .then(res => res.json())
+      .then(data => {
+        setWeatherData({
+          temp: data.current_weather.temperature,
+          windspeed: data.current_weather.windspeed,
+          // Open-Meteo provides hourly humidity, taking the first one as current approximation
+          humidity: data.hourly.relativehumidity_2m[0],
+          // Basic mapping of WMO weather codes to text
+          desc: data.current_weather.weathercode === 0 ? '晴朗' :
+                data.current_weather.weathercode <= 3 ? '多云' : '雨/雪'
+        });
+      })
+      .catch(err => console.error("获取天气失败:", err));
   }, []);
 
   // Big Editor State
@@ -118,14 +199,14 @@ export function TodoList() {
       createdAt: new Date().toISOString(),
       date: selectedDate
     };
-    
+
     // 如果已经有未填写的空白便签，先清理掉它们，防止产生大量垃圾数据
     const filteredTodos = todos.filter(t => t.title.trim() !== '' || t.content.trim() !== '');
-    
+
     useStore.setState({
       todos: [newTodo, ...filteredTodos] // 新建的放到最上面
     });
-    
+
     setOpenedTodoId(newId);
     setEditTitle('');
     setEditContent('');
@@ -169,13 +250,28 @@ export function TodoList() {
 
   const closeAndSaveEditor = () => {
     if (openedTodoId) {
+      const closingId = openedTodoId;
+      const existing = todos.find((todo) => todo.id === closingId);
       updateTodoDetails(openedTodoId, editTitle || '', editContent);
-      
+
       // 如果关闭时标题和内容都为空，则自动删除该便签
       if (!editTitle.trim() && !editContent.trim()) {
         deleteTodo(openedTodoId);
+      } else if (todoistConnected && existing?.source !== 'todoist' && window.ipcRenderer) {
+        window.ipcRenderer.invoke('todoist-create-task', {
+          content: editTitle || '无标题',
+          description: editContent,
+          dueDate: existing?.date || selectedDate,
+          priority: existing ? 5 - existing.quadrant : 3,
+        }).then((result) => {
+          if (result?.success && result.task?.id) {
+            linkTodoToTodoist(closingId, String(result.task.id));
+          } else if (result?.error) {
+            window.alert(result.error);
+          }
+        });
       }
-      
+
       setOpenedTodoId(null);
       setIsShareMenuOpen(false);
     }
@@ -218,7 +314,7 @@ export function TodoList() {
       <div className="px-5 py-4 flex items-center justify-between relative z-20">
         <div className="flex items-center gap-3">
           <div className="relative flex items-center">
-            <button 
+            <button
               onClick={() => { setIsCalendarOpen(!isCalendarOpen); setIsWeatherOpen(false); }}
               className="flex items-center gap-2 text-foreground/50 hover:text-foreground transition-colors px-2 py-1 -ml-2 rounded hover:bg-foreground/10"
             >
@@ -235,8 +331,8 @@ export function TodoList() {
               {format(currentTime, 'HH:mm')}
             </button>
 
-            <div 
-              className="relative" 
+            <div
+              className="relative"
               onMouseEnter={() => { setIsWeatherOpen(true); setIsCalendarOpen(false); }}
               onMouseLeave={() => setIsWeatherOpen(false)}
             >
@@ -266,19 +362,23 @@ export function TodoList() {
                       </div>
                       <CloudSun className="w-8 h-8 text-q2" />
                     </div>
-                    
+
                     <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-4xl font-display font-light text-foreground">28</span>
+                      <span className="text-4xl font-display font-light text-foreground">
+                        {weatherData ? weatherData.temp : '--'}
+                      </span>
                       <span className="text-foreground/50 text-sm">°C</span>
                     </div>
-                    <div className="text-sm text-foreground/80 font-medium">多云转晴</div>
+                    <div className="text-sm text-foreground/80 font-medium">
+                      {weatherData ? weatherData.desc : '加载中...'}
+                    </div>
 
                     <div className="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-foreground/10">
                       <div className="flex items-center gap-2 text-xs text-foreground/60">
-                        <Droplets className="w-3.5 h-3.5 text-theme-accent" /> 湿度 65%
+                        <Droplets className="w-3.5 h-3.5 text-theme-accent" /> 湿度 {weatherData ? weatherData.humidity : '--'}%
                       </div>
                       <div className="flex items-center gap-2 text-xs text-foreground/60">
-                        <Wind className="w-3.5 h-3.5 text-foreground/40" /> 东南风 3级
+                        <Wind className="w-3.5 h-3.5 text-foreground/40" /> 风速 {weatherData ? weatherData.windspeed : '--'}
                       </div>
                     </div>
                   </motion.div>
@@ -343,14 +443,25 @@ export function TodoList() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button 
+          <button
+            onClick={syncTodoist}
+            className={cn(
+              "p-1.5 rounded transition-all",
+              todoistConnected ? "text-red-400 bg-red-400/10" : "text-foreground/40 hover:text-foreground hover:bg-foreground/10"
+            )}
+            title={todoistConnected ? '刷新 Todoist' : '连接 Todoist'}
+            aria-label={todoistConnected ? '刷新 Todoist' : '连接 Todoist'}
+          >
+            <RefreshCw className={cn("w-4 h-4", todoistSyncing && "animate-spin")} />
+          </button>
+          <button
             onClick={handleSortToggle}
             className={cn(
               "p-1.5 rounded transition-all flex items-center gap-1",
               sortMode !== 'manual' ? "bg-foreground/10 text-foreground shadow-sm" : "hover:bg-foreground/10 text-foreground/40 hover:text-foreground"
             )}
             title={
-              sortMode === 'manual' ? "按优先级排序" : 
+              sortMode === 'manual' ? "按优先级排序" :
               sortMode === 'priority' ? "按时间排序" : "恢复默认排序"
             }
           >
@@ -369,13 +480,13 @@ export function TodoList() {
 
       {/* 列表区域 */}
       <div className="flex-1 overflow-y-auto px-5 pb-20 pt-2 scrollbar-thin relative z-10">
-        <Reorder.Group 
-          axis="y" 
-          values={currentTodos} 
+        <Reorder.Group
+          axis="y"
+          values={currentTodos}
           onReorder={(newTodos) => {
             setSortMode('manual');
             reorderTodos(newTodos);
-          }} 
+          }}
           className="flex flex-col"
         >
           {currentTodos.map(todo => {
@@ -395,17 +506,17 @@ export function TodoList() {
                   </div>
 
                   <div className="flex flex-col items-center gap-2 mt-0.5 relative">
-                    <PriorityKnob 
-                      quadrant={todo.quadrant} 
+                    <PriorityKnob
+                      quadrant={todo.quadrant}
                       completed={todo.completed}
-                      onToggleComplete={() => toggleTodo(todo.id)}
+                      onToggleComplete={() => handleToggleTodo(todo)}
                       onChangePriority={(q) => updateTodoQuadrant(todo.id, q)}
                     />
                   </div>
-                  
+
                   <div className="flex-1 flex flex-col min-w-0">
                     {/* 只显示标题 */}
-                    <div 
+                    <div
                       onClick={() => openEditor(todo)}
                       className={cn(
                         "cursor-pointer whitespace-pre-wrap leading-relaxed text-[15px] py-0.5 transition-all duration-300 select-none",
@@ -415,7 +526,7 @@ export function TodoList() {
                     >
                       {todo.title || '空白便签 (点击编辑)'}
                     </div>
-                    
+
                     {/* 悬停展示的详情内容 */}
                     <AnimatePresence>
                       {hoveredTodoId === todo.id && todo.content && !todo.completed && (
@@ -441,11 +552,11 @@ export function TodoList() {
                   </div>
 
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-0.5">
-                    <CustomTimePicker 
+                    <CustomTimePicker
                       value={todo.reminderTime || ''}
                       onChange={(time) => updateTodoReminder(todo.id, time)}
                     />
-                    <button onClick={() => deleteTodo(todo.id)} className="p-1.5 hover:bg-foreground/10 rounded-md text-foreground/30 hover:text-q1 transition-all" title="删除便签">
+                    <button onClick={() => handleDeleteTodo(todo)} className="p-1.5 hover:bg-foreground/10 rounded-md text-foreground/30 hover:text-q1 transition-all" title="删除便签">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -486,14 +597,14 @@ export function TodoList() {
                   自动保存于 {format(new Date(), 'HH:mm')}
                 </span>
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={handleShare}
                     className="p-2 hover:bg-foreground/10 rounded-full text-foreground/70 hover:text-foreground transition-all"
                     title="分享便签"
                   >
                     <Share className="w-4 h-4" />
                   </button>
-                  
+
                   {/* 分享菜单 */}
                   <AnimatePresence>
                     {isShareMenuOpen && (
@@ -504,7 +615,7 @@ export function TodoList() {
                         className="absolute right-0 top-full mt-2 w-64 bg-card border border-foreground/10 rounded-xl shadow-2xl p-4 z-50 flex flex-col gap-4"
                       >
                         <h3 className="text-sm font-medium text-foreground">分享便签</h3>
-                        
+
                         <div className="bg-foreground/10 rounded-lg p-3 flex flex-col items-center justify-center gap-2">
                           <div className="w-24 h-24 bg-white rounded flex items-center justify-center">
                             <QrCode className="w-16 h-16 text-background" />
@@ -516,7 +627,7 @@ export function TodoList() {
                           <div className="flex-1 bg-background/10 border border-foreground/10 rounded-lg px-2 py-1.5 text-xs text-foreground/70 truncate">
                             {shareLink}
                           </div>
-                          <button 
+                          <button
                             onClick={handleCopyLink}
                             className="p-1.5 bg-theme-accent/20 text-theme-accent hover:bg-theme-accent/40 rounded-lg transition-colors flex-shrink-0"
                             title="复制链接"
@@ -532,7 +643,7 @@ export function TodoList() {
             </div>
 
             {/* 编辑区域 */}
-            <div 
+            <div
               className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-4 scrollbar-thin"
               onClick={() => {
                 // 点击空白区域也视为触发失焦/关闭的辅助逻辑，或者直接让外层的 onBlur 处理
