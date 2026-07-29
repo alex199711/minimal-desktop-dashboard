@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite'
+import path from 'node:path'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
-import { traeBadgePlugin } from 'vite-plugin-trae-solo-badge';
-// import electron from 'vite-plugin-electron/simple';
+import electron from 'vite-plugin-electron/simple';
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: './', // 关键修复：确保打包后的相对路径正确
   build: {
     sourcemap: 'hidden',
   },
@@ -17,24 +18,37 @@ export default defineConfig({
         ],
       },
     }),
-    traeBadgePlugin({
-      variant: 'dark',
-      position: 'bottom-right',
-      prodOnly: true,
-      clickable: true,
-      clickUrl: 'https://www.trae.ai/solo?showJoin=1',
-      autoTheme: true,
-      autoThemeTarget: '#root'
-    }), 
     tsconfigPaths(),
-    /* electron({
+    electron({
       main: {
         entry: 'electron/main.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                entryFileNames: '[name].mjs',
+                chunkFileNames: '[name].mjs',
+              }
+            }
+          }
+        }
       },
       preload: {
         input: 'electron/preload.ts',
+        vite: {
+          build: {
+            rollupOptions: {
+              output: {
+                entryFileNames: '[name].mjs',
+                chunkFileNames: '[name].mjs',
+              }
+            }
+          }
+        }
       },
-      renderer: {},
-    }), */
+      renderer: process.env.NODE_ENV === 'test'
+        ? undefined
+        : {},
+    }),
   ],
 })

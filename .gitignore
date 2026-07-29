@@ -9,8 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
+dist-app*
 dist-ssr
 *.local
+.npmrc
+minimal-desktop-dashboard-cover/
 
 # Editor directories and files
 .vscode/*

@@ -1,15 +1,20 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, globalShortcut, Notification, nativeTheme } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, globalShortcut, Notification } from 'electron';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import { exec } from 'node:child_process';
 
+const __filename = fileURLToPath(import.meta.url);
+const currentDir = path.dirname(__filename);
+
 // The built directory structure
-process.env.DIST = path.join(__dirname, '../dist');
+process.env.DIST = path.join(currentDir, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 
 let win: BrowserWindow | null;
 let tray: Tray | null = null;
+let todoistToken: string | null = null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
 // Persistent store file
@@ -17,9 +22,8 @@ const storePath = path.join(app.getPath('userData'), 'dashboard-store.json');
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(currentDir, 'preload.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -49,8 +53,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(process.env.VITE_PUBLIC, 'electron-vite.svg');
-  tray = new Tray(iconPath);
+  tray = new Tray(process.execPath);
   const contextMenu = Menu.buildFromTemplate([
     { label: '显示看板', click: () => win?.show() },
     { type: 'separator' },
@@ -104,7 +107,7 @@ app.whenReady().then(() => {
 
   // Native Notification
   ipcMain.on('show-notification', (_, { title, body }) => {
-    new Notification({ title, body, icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg') }).show();
+    new Notification({ title, body }).show();
   });
 
   // Store persistence
@@ -131,8 +134,8 @@ app.whenReady().then(() => {
       'LayoutGrid': 'explorer shell:AppsFolder',
       'Settings': 'start ms-settings:',
       'Compass': 'start msedge',
-      'Mail': 'start outlookmail:',
-      'Calendar': 'start outlookcal:',
+      'Mail': 'mailto:',
+      'Calendar': 'https://calendar.google.com/calendar/u/0/r',
       'MessageSquare': 'start msteams:',
       'Book': 'start notepad',
       'FileText': 'start write',
@@ -145,11 +148,81 @@ app.whenReady().then(() => {
     };
 
     const cmd = appMap[appName];
-    if (cmd) {
+    if (cmd?.startsWith('http') || cmd === 'mailto:') {
+      await shell.openExternal(cmd);
+    } else if (cmd) {
       exec(cmd, (error) => {
         if (error) console.error(`Failed to launch app ${appName}:`, error);
       });
     }
+  });
+
+  ipcMain.handle('todoist-connect', async (_, token: string) => {
+    if (!token?.trim()) return { success: false, error: '缺少 Todoist API Token' };
+    try {
+      const response = await fetch('https://api.todoist.com/api/v1/tasks?limit=200', {
+        headers: { Authorization: `Bearer ${token.trim()}` },
+      });
+      if (!response.ok) return { success: false, error: `Todoist 连接失败 (${response.status})` };
+      todoistToken = token.trim();
+      const payload: any = await response.json();
+      return { success: true, tasks: payload.results || [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('todoist-refresh', async () => {
+    if (!todoistToken) return { success: false, error: '请先连接 Todoist' };
+    try {
+      const response = await fetch('https://api.todoist.com/api/v1/tasks?limit=200', {
+        headers: { Authorization: `Bearer ${todoistToken}` },
+      });
+      if (!response.ok) return { success: false, error: `同步失败 (${response.status})` };
+      const payload: any = await response.json();
+      return { success: true, tasks: payload.results || [] };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('todoist-close-task', async (_, taskId: string) => {
+    if (!todoistToken) return { success: false, error: '请先连接 Todoist' };
+    const response = await fetch(`https://api.todoist.com/api/v1/tasks/${taskId}/close`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${todoistToken}` },
+    });
+    return { success: response.ok, error: response.ok ? undefined : `操作失败 (${response.status})` };
+  });
+
+  ipcMain.handle('todoist-create-task', async (_, task: { content: string; description?: string; dueDate?: string; priority?: number }) => {
+    if (!todoistToken) return { success: false, error: '请先连接 Todoist' };
+    const response = await fetch('https://api.todoist.com/api/v1/tasks', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${todoistToken}`,
+        'Content-Type': 'application/json',
+        'X-Request-Id': crypto.randomUUID(),
+      },
+      body: JSON.stringify({
+        content: task.content,
+        description: task.description || undefined,
+        due_date: task.dueDate || undefined,
+        priority: task.priority || 1,
+      }),
+    });
+    if (!response.ok) return { success: false, error: `创建失败 (${response.status})` };
+    const created: any = await response.json();
+    return { success: true, task: created };
+  });
+
+  ipcMain.handle('todoist-delete-task', async (_, taskId: string) => {
+    if (!todoistToken) return { success: false, error: '请先连接 Todoist' };
+    const response = await fetch(`https://api.todoist.com/api/v1/tasks/${taskId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${todoistToken}` },
+    });
+    return { success: response.ok, error: response.ok ? undefined : `删除失败 (${response.status})` };
   });
 
   // IPC handlers for file creation
@@ -208,6 +281,18 @@ app.whenReady().then(() => {
       return { success: true, path: filePath };
     } catch (error: any) {
       console.error('Failed to create file:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('open-path', async (_, targetPath: string) => {
+    try {
+      if (!targetPath || !path.isAbsolute(targetPath)) {
+        return { success: false, error: '无效的文件路径' };
+      }
+      const error = await shell.openPath(targetPath);
+      return error ? { success: false, error } : { success: true };
+    } catch (error: any) {
       return { success: false, error: error.message };
     }
   });

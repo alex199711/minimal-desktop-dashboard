@@ -1,9 +1,29 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useStore } from '../store/useStore';
 import * as Icons from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 export function AppLauncher() {
   const { isAppLauncherOpen, toggleAppLauncher, apps, incrementAppUsage } = useStore();
+  const [query, setQuery] = useState('');
+  const filteredApps = useMemo(
+    () => apps
+      .filter((app) => app.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+      .sort((a, b) => {
+        if (b.usageCount !== a.usageCount) return b.usageCount - a.usageCount;
+        return new Date(b.lastUsedAt || 0).getTime() - new Date(a.lastUsedAt || 0).getTime();
+      }),
+    [apps, query]
+  );
+
+  useEffect(() => {
+    if (!isAppLauncherOpen) setQuery('');
+    const close = (event: KeyboardEvent) => {
+      if (isAppLauncherOpen && event.key === 'Escape') toggleAppLauncher();
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [isAppLauncherOpen, toggleAppLauncher]);
 
   const handleAppClick = (id: string, iconName: string) => {
     incrementAppUsage(id);
@@ -11,6 +31,8 @@ export function AppLauncher() {
     // 真实应用启动逻辑 (Electron端)
     if (window.ipcRenderer) {
       window.ipcRenderer.invoke('launch-app', iconName).catch(console.error);
+    } else {
+      console.log(`在桌面端将启动应用: ${iconName}`);
     }
   };
 
@@ -26,6 +48,7 @@ export function AppLauncher() {
           <button 
             onClick={toggleAppLauncher} 
             className="absolute top-8 right-8 p-4 bg-foreground/10 hover:bg-foreground/10 rounded-full text-foreground transition-all hover:scale-110"
+            aria-label="关闭应用启动器"
           >
             <Icons.X className="w-6 h-6" />
           </button>
@@ -35,13 +58,25 @@ export function AppLauncher() {
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="text-2xl font-display font-medium text-foreground mb-16 text-center tracking-widest opacity-80"
+              className="text-2xl font-display font-medium text-foreground mb-6 text-center tracking-widest opacity-80"
             >
               全部应用
             </motion.h2>
+
+            <label className="search-box mx-auto mb-10 max-w-md bg-background/50">
+              <Icons.Search className="size-4 text-foreground/40" />
+              <input
+                autoFocus
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索应用"
+                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-foreground/35"
+              />
+              <kbd>ESC</kbd>
+            </label>
             
             <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-6 gap-x-8 gap-y-12">
-              {apps.map((app, index) => {
+              {filteredApps.map((app, index) => {
                 const IconComponent = (Icons as any)[app.iconName] || Icons.HelpCircle;
                 return (
                   <motion.div
@@ -62,6 +97,7 @@ export function AppLauncher() {
                 );
               })}
             </div>
+            {!filteredApps.length && <div className="py-12 text-center text-sm text-foreground/40">未找到应用</div>}
           </div>
         </motion.div>
       )}

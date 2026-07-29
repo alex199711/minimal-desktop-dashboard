@@ -36,6 +36,9 @@
 
     --radius: 1rem;
     
+    --font-sans: 'Inter', sans-serif;
+    --font-display: 'Space Grotesk', sans-serif;
+
     /* Quadrant Colors */
     --q1: 348 83% 54%; /* Neon Red */
     --q2: 43 96% 56%;  /* Amber Yellow */
@@ -84,11 +87,16 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-sans);
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: var(--font-display);
   }
+}
+
+.disable-animations * {
+  transition: none !important;
+  animation: none !important;
 }
 
 .glass-panel {
@@ -97,6 +105,138 @@
 
 .glass-card {
   @apply bg-black/5 dark:bg-white/5 backdrop-blur-md border border-black/5 dark:border-white/5 rounded-2xl hover:bg-black/10 dark:hover:bg-white/10 transition-colors;
+}
+
+.desktop-titlebar {
+  -webkit-app-region: drag;
+  @apply flex h-8 items-center justify-between border-b border-foreground/10 bg-background/85 backdrop-blur-xl;
+}
+
+.titlebar-controls {
+  -webkit-app-region: no-drag;
+  @apply flex h-full items-stretch;
+}
+
+.titlebar-controls button {
+  @apply flex w-11 items-center justify-center text-foreground/45 transition-colors hover:bg-foreground/10 hover:text-foreground;
+}
+
+.titlebar-controls .titlebar-close:hover {
+  @apply bg-red-500 text-white;
+}
+
+.desktop-shell {
+  @apply grid h-[calc(100vh-2rem)] min-h-0 gap-px overflow-hidden bg-foreground/10 p-px;
+  grid-template-columns: 68px minmax(248px, 288px) minmax(480px, 1fr) minmax(300px, 340px);
+}
+
+.desktop-shell-compact {
+  grid-template-columns: 60px minmax(224px, 260px) minmax(460px, 1fr) minmax(280px, 310px);
+}
+
+.tool-rail {
+  @apply relative z-10 flex h-full w-full flex-col items-center bg-background/80 px-2 py-4 backdrop-blur-xl;
+}
+
+.tool-button,
+.icon-button {
+  @apply relative flex size-10 shrink-0 items-center justify-center rounded-xl text-foreground/50 transition-colors duration-150 hover:bg-foreground/10 hover:text-foreground disabled:opacity-40;
+}
+
+.tool-button:first-of-type {
+  @apply bg-theme-accent/15 text-theme-accent;
+}
+
+.zone-panel {
+  @apply bg-background/90 backdrop-blur-xl;
+}
+
+.zone-heading {
+  @apply flex min-h-[68px] items-center justify-between px-4 py-3;
+}
+
+.zone-eyebrow {
+  @apply text-[9px] font-bold tracking-[0.2em] text-foreground/35;
+}
+
+.zone-title {
+  @apply mt-0.5 text-sm font-semibold tracking-tight text-foreground/85;
+}
+
+.search-box {
+  @apply flex h-9 items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.035] px-3 transition-colors focus-within:border-theme-accent/50 focus-within:bg-foreground/[0.06];
+}
+
+kbd {
+  @apply rounded border border-foreground/10 bg-foreground/5 px-1.5 py-0.5 text-[9px] text-foreground/35;
+}
+
+.file-nav-item {
+  @apply flex h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm text-foreground/50 transition-colors hover:bg-foreground/5 hover:text-foreground/80;
+}
+
+.file-nav-item-active {
+  @apply bg-theme-accent/10 text-theme-accent;
+  box-shadow: inset 2px 0 0 hsl(var(--theme-accent));
+}
+
+.file-row {
+  @apply flex min-h-[48px] items-center gap-2.5 rounded-lg px-2.5 py-2 outline-none transition-colors hover:bg-foreground/5 focus:bg-foreground/5;
+}
+
+.workspace-canvas {
+  @apply flex min-w-0 flex-col bg-background/95;
+}
+
+.workspace-toolbar {
+  @apply flex min-h-[68px] items-center justify-between border-b border-foreground/10 px-4;
+}
+
+.command-trigger {
+  @apply flex h-9 items-center gap-2 rounded-xl border border-foreground/10 bg-foreground/[0.035] px-3 text-xs text-foreground/50 transition-colors hover:bg-foreground/[0.07] hover:text-foreground;
+}
+
+.efficiency-panel {
+  @apply flex min-w-0 flex-col bg-background/90 backdrop-blur-xl;
+}
+
+.efficiency-panel > .flex-1 > .glass-panel {
+  @apply rounded-none border-0 bg-transparent shadow-none;
+}
+
+:focus-visible {
+  outline: 2px solid hsl(var(--theme-accent));
+  outline-offset: 2px;
+}
+
+@media (max-width: 1279px) {
+  .desktop-shell {
+    grid-template-columns: 64px 248px minmax(460px, 1fr);
+  }
+  .efficiency-panel {
+    @apply fixed bottom-3 right-3 top-11 z-30 w-[320px] border border-foreground/10 shadow-2xl;
+  }
+}
+
+@media (max-width: 1020px) {
+  .desktop-shell {
+    grid-template-columns: 60px minmax(210px, 236px) minmax(430px, 1fr);
+  }
+  .command-trigger span,
+  .command-trigger kbd {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Scrollbar styles */

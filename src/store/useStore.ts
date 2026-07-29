@@ -11,6 +11,8 @@ export interface TodoItem {
   createdAt: string;
   date: string; // 关联的日期，格式 YYYY-MM-DD
   reminderTime?: string; // 提醒时间，格式 HH:mm
+  externalId?: string;
+  source?: 'local' | 'todoist';
 }
 
 export interface WorkspaceItem {
@@ -20,6 +22,7 @@ export interface WorkspaceItem {
   status: 'temp' | 'archived'; // 临时或已归档
   targetId?: string; // 如果是 shortcut，指向原档案的 ID
   updatedAt: string;
+  path?: string;
 }
 
 export interface AlarmItem {
@@ -41,6 +44,7 @@ export interface AppItem {
   iconName: string; // 对应 Lucide 图标的名字，例如 'Mail'
   color: string;
   usageCount: number;
+  lastUsedAt?: string;
 }
 
 interface DashboardState {
@@ -58,9 +62,19 @@ interface DashboardState {
   themeMode: 'dark' | 'light' | 'auto';
   accentColor: string;
   glassOpacity: number;
+  wallpaper: string;
+  layoutDensity: 'comfortable' | 'compact';
+  panelRadius: number;
+  fontFamily: 'system' | 'serif' | 'mono';
+  enableAnimations: boolean;
   setThemeMode: (mode: 'dark' | 'light' | 'auto') => void;
   setAccentColor: (color: string) => void;
   setGlassOpacity: (opacity: number) => void;
+  setWallpaper: (wallpaper: string) => void;
+  setLayoutDensity: (density: 'comfortable' | 'compact') => void;
+  setPanelRadius: (radius: number) => void;
+  setFontFamily: (font: 'system' | 'serif' | 'mono') => void;
+  setEnableAnimations: (enable: boolean) => void;
   setSelectedDate: (date: string) => void;
   toggleAppLauncher: () => void;
   toggleClock: () => void;
@@ -73,6 +87,8 @@ interface DashboardState {
   addTimer: (timer: Omit<TimerItem, 'id'>) => void;
   deleteTimer: (id: string) => void;
   incrementAppUsage: (id: string) => void;
+  mergeTodoistTodos: (todos: TodoItem[]) => void;
+  linkTodoToTodoist: (id: string, externalId: string) => void;
   addTodo: (todo: Omit<TodoItem, 'id' | 'createdAt'>) => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
@@ -100,6 +116,11 @@ export const useStore = create<DashboardState>()(
       themeMode: 'dark',
       accentColor: 'blue',
       glassOpacity: 70,
+      wallpaper: 'none',
+      layoutDensity: 'comfortable',
+      panelRadius: 16,
+      fontFamily: 'system',
+      enableAnimations: true,
       alarms: [],
       timers: [],
       apps: [
@@ -119,6 +140,11 @@ export const useStore = create<DashboardState>()(
       setThemeMode: (mode) => set({ themeMode: mode }),
       setAccentColor: (color) => set({ accentColor: color }),
       setGlassOpacity: (opacity) => set({ glassOpacity: opacity }),
+      setWallpaper: (wallpaper) => set({ wallpaper }),
+      setLayoutDensity: (density) => set({ layoutDensity: density }),
+      setPanelRadius: (radius) => set({ panelRadius: radius }),
+      setFontFamily: (font) => set({ fontFamily: font }),
+      setEnableAnimations: (enable) => set({ enableAnimations: enable }),
       setSelectedDate: (date) => set({ selectedDate: date }),
       toggleAppLauncher: () => set((state) => ({ isAppLauncherOpen: !state.isAppLauncherOpen })),
       toggleClock: () => set((state) => ({ isClockOpen: !state.isClockOpen })),
@@ -130,7 +156,20 @@ export const useStore = create<DashboardState>()(
       deleteAlarm: (id) => set((state) => ({ alarms: state.alarms.filter(a => a.id !== id) })),
       addTimer: (timer) => set((state) => ({ timers: [...state.timers, { ...timer, id: Date.now().toString() }] })),
       deleteTimer: (id) => set((state) => ({ timers: state.timers.filter(t => t.id !== id) })),
-      incrementAppUsage: (id) => set((state) => ({ apps: state.apps.map(a => a.id === id ? { ...a, usageCount: a.usageCount + 1 } : a) })),
+      incrementAppUsage: (id) => set((state) => ({
+        apps: state.apps.map(a => a.id === id
+          ? { ...a, usageCount: a.usageCount + 1, lastUsedAt: new Date().toISOString() }
+          : a)
+      })),
+      mergeTodoistTodos: (incoming) => set((state) => {
+        const localOnly = state.todos.filter((todo) => todo.source !== 'todoist');
+        return { todos: [...incoming, ...localOnly] };
+      }),
+      linkTodoToTodoist: (id, externalId) => set((state) => ({
+        todos: state.todos.map((todo) => todo.id === id
+          ? { ...todo, externalId, source: 'todoist' as const }
+          : todo)
+      })),
       todos: [
         { id: '1', title: '完成项目PRD', quadrant: 1, completed: false, createdAt: new Date().toISOString(), date: format(new Date(), 'yyyy-MM-dd') },
         { id: '2', title: '团队周会', quadrant: 2, completed: false, createdAt: new Date().toISOString(), date: format(new Date(), 'yyyy-MM-dd') },
