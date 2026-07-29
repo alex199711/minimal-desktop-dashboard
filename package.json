@@ -35,8 +35,13 @@
     "productName": "DesktopDashboard",
     "executableName": "Kanban",
     "directories": {
-      "output": "dist-app-3"
+      "output": "dist-app-v2-release"
     },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
     "win": {
       "target": [
         "nsis",
