@@ -1,0 +1,147 @@
+schema: ez-repository-registry/v1
+updated_at: 2026-10-31
+owner: alex199711
+source_issue: 4
+status: draft
+notes:
+  - "Phase 1 inventory. No destructive rename/archive/delete actions are authorized by this file."
+  - "Only repositories verified in this batch are listed below; remaining repositories are pending review."
+repositories:
+  - repo: alex199711/ez-maker-hardware-agent-platform
+    layer: L1
+    ownership: original
+    status: experimental
+    role: platform
+    upstream: null
+    license: unknown
+    visibility: private
+    used_by:
+      - ez-maker
+      - hardware-agent
+    agent_callable: true
+    recommended_action: promote
+    notes: "Original local/auditable hardware engineering platform. Current default branch is codex/platform-offline-tools; later normalize release/default-branch policy."
+
+  - repo: alex199711/minimal-desktop-dashboard
+    layer: L1
+    ownership: original
+    status: active
+    role: product
+    upstream: null
+    license: MIT
+    visibility: public
+    used_by:
+      - personal-workspace
+    agent_callable: true
+    recommended_action: promote
+    notes: "Original TypeScript desktop productivity project and current temporary governance host for GitHub system migration."
+
+  - repo: alex199711/STM32practice
+    layer: L3
+    ownership: original
+    status: experimental
+    role: lab
+    upstream: null
+    license: AGPL-3.0
+    visibility: public
+    used_by:
+      - ez-maker
+      - hardware-learning
+    agent_callable: false
+    recommended_action: keep
+    notes: "Personal STM32 learning/practice repository; keep experimental rather than presenting as a stable product."
+
+  - repo: alex199711/LinkSwift
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: hmjz100/LinkSwift
+    license: AGPL-3.0
+    visibility: public
+    used_by:
+      - personal-tools
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Direct GitHub fork. Keep upstream attribution explicit; unless custom patches are maintained, prefer registry/index tracking over treating it as an owned product."
+
+  - repo: alex199711/agent-browser
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: vercel-labs/agent-browser
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - ai-agent
+      - ez-maker
+      - automation
+    agent_callable: true
+    recommended_action: index-only
+    notes: "Important Agent browser capability. Keep upstream relationship explicit; create a separate adapter/integration repository only when local behavior diverges."
+
+  - repo: alex199711/artemis
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: google/artemis
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - ai-agent
+      - ez-maker
+      - mobile-qa
+    agent_callable: true
+    recommended_action: adapter
+    notes: "Google ARTEMIS fork. Do not modify upstream identity; if integrated into Hardware Agent, build an owned adapter/connector layer around it."
+
+  - repo: alex199711/everything
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: HeyPuter/everything
+    license: MIT
+    visibility: public
+    used_by:
+      - open-source-radar
+      - software-reference
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Large upstream reference project. Useful as discovery/reference material; not an owned product."
+
+  - repo: alex199711/exo
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: exo-explore/exo
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - local-ai
+      - ai-agent
+      - ez-maker
+    agent_callable: true
+    recommended_action: adapter
+    notes: "Local/distributed AI infrastructure upstream. Prefer an owned integration/adapter layer if used as a backend rather than modifying the fork directly."
+
+pending_review:
+  - alex199711/ai-agent-book
+  - alex199711/awesome-remote-job
+  - alex199711/awesome-selfhosted
+  - alex199711/diagram-design
+  - alex199711/Filee
+  - alex199711/filmcraft
+  - alex199711/genoffice
+  - alex199711/openscreen
+  - alex199711/PageIndex
+  - alex199711/prompt-optimizer
+  - alex199711/streambert
+  - alex199711/taste-skill
+  - alex199711/up
+  - alex199711/vercel-skills
+  - alex199711/video-shotcraft
+  - alex199711/VLX-Seek
