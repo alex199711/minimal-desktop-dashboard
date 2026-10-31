@@ -2,10 +2,35 @@ schema: ez-repository-registry/v1
 updated_at: 2026-10-31
 owner: alex199711
 source_issue: 4
-status: draft
-notes:
-  - "Phase 1 inventory. No destructive rename/archive/delete actions are authorized by this file."
-  - "Only repositories verified in this batch are listed below; remaining repositories are pending review."
+status: phase1-complete
+
+principles:
+  - "Original work and upstream open source must be distinguishable at a glance."
+  - "Prefer upstream links/packages over maintaining unnecessary forks."
+  - "When local behavior must diverge, create an owned adapter/connector/workflow layer instead of hiding the upstream origin."
+  - "No destructive rename/archive/delete actions are authorized by this registry."
+  - "Human-facing README and machine-facing metadata should describe the same project identity."
+
+summary:
+  total_repositories: 24
+  ownership:
+    original: 3
+    fork: 21
+  layers:
+    L0: 0
+    L1: 2
+    L2: 0
+    L3: 1
+    L4: 21
+    L5: 0
+  current_core_existing:
+    - alex199711/ez-maker-hardware-agent-platform
+    - alex199711/minimal-desktop-dashboard
+  planned_system_repositories:
+    - "GitHub Profile / human entrypoint (alex199711/alex199711)"
+    - "Open-source / repository registry entrypoint"
+    - "Future EZ Sales / EZ Maker reusable components as they become real maintained projects"
+
 repositories:
   - repo: alex199711/ez-maker-hardware-agent-platform
     layer: L1
@@ -20,7 +45,7 @@ repositories:
       - hardware-agent
     agent_callable: true
     recommended_action: promote
-    notes: "Original local/auditable hardware engineering platform. Current default branch is codex/platform-offline-tools; later normalize release/default-branch policy."
+    notes: "Original local/auditable hardware engineering platform. Current default branch is codex/platform-offline-tools; later normalize default branch, license, CI and release policy."
 
   - repo: alex199711/minimal-desktop-dashboard
     layer: L1
@@ -34,7 +59,7 @@ repositories:
       - personal-workspace
     agent_callable: true
     recommended_action: promote
-    notes: "Original TypeScript desktop productivity project and current temporary governance host for GitHub system migration."
+    notes: "Original TypeScript desktop productivity project and temporary governance host for this GitHub migration."
 
   - repo: alex199711/STM32practice
     layer: L3
@@ -49,12 +74,12 @@ repositories:
       - hardware-learning
     agent_callable: false
     recommended_action: keep
-    notes: "Personal STM32 learning/practice repository; keep experimental rather than presenting as a stable product."
+    notes: "Personal STM32 learning/practice repository; keep explicitly experimental rather than presenting as a stable product."
 
   - repo: alex199711/LinkSwift
     layer: L4
     ownership: fork
-    status: active
+    status: maintenance
     role: upstream
     upstream: hmjz100/LinkSwift
     license: AGPL-3.0
@@ -63,7 +88,7 @@ repositories:
       - personal-tools
     agent_callable: false
     recommended_action: index-only
-    notes: "Direct GitHub fork. Keep upstream attribution explicit; unless custom patches are maintained, prefer registry/index tracking over treating it as an owned product."
+    notes: "Direct upstream fork. Keep attribution explicit; unless local patches are maintained, prefer registry/index tracking."
 
   - repo: alex199711/agent-browser
     layer: L4
@@ -79,7 +104,7 @@ repositories:
       - automation
     agent_callable: true
     recommended_action: index-only
-    notes: "Important Agent browser capability. Keep upstream relationship explicit; create a separate adapter/integration repository only when local behavior diverges."
+    notes: "Core browser automation capability. Prefer consuming upstream directly; create an owned integration layer only when EZ-specific behavior is required."
 
   - repo: alex199711/artemis
     layer: L4
@@ -95,12 +120,12 @@ repositories:
       - mobile-qa
     agent_callable: true
     recommended_action: adapter
-    notes: "Google ARTEMIS fork. Do not modify upstream identity; if integrated into Hardware Agent, build an owned adapter/connector layer around it."
+    notes: "Google ARTEMIS upstream. If integrated into Hardware Agent, keep ARTEMIS upstream-clean and put EZ-specific orchestration in a separate adapter/connector."
 
   - repo: alex199711/everything
     layer: L4
     ownership: fork
-    status: active
+    status: maintenance
     role: upstream
     upstream: HeyPuter/everything
     license: MIT
@@ -110,7 +135,7 @@ repositories:
       - software-reference
     agent_callable: false
     recommended_action: index-only
-    notes: "Large upstream reference project. Useful as discovery/reference material; not an owned product."
+    notes: "Large upstream reference project. Useful for software discovery/reference; not an owned product."
 
   - repo: alex199711/exo
     layer: L4
@@ -126,22 +151,283 @@ repositories:
       - ez-maker
     agent_callable: true
     recommended_action: adapter
-    notes: "Local/distributed AI infrastructure upstream. Prefer an owned integration/adapter layer if used as a backend rather than modifying the fork directly."
+    notes: "Local/distributed AI infrastructure upstream. Prefer a separate EZ inference adapter when used as an Agent backend."
 
-pending_review:
-  - alex199711/ai-agent-book
-  - alex199711/awesome-remote-job
-  - alex199711/awesome-selfhosted
-  - alex199711/diagram-design
-  - alex199711/Filee
-  - alex199711/filmcraft
-  - alex199711/genoffice
-  - alex199711/openscreen
-  - alex199711/PageIndex
-  - alex199711/prompt-optimizer
-  - alex199711/streambert
-  - alex199711/taste-skill
-  - alex199711/up
-  - alex199711/vercel-skills
-  - alex199711/video-shotcraft
-  - alex199711/VLX-Seek
+  - repo: alex199711/ai-agent-book
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: bojieli/ai-agent-book
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - ai-agent-learning
+      - agent-architecture-reference
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Reference/learning source for Agent engineering. Keep as source material, not as a product repository."
+
+  - repo: alex199711/awesome-remote-job
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: lukasz-madon/awesome-remote-job
+    license: unknown
+    visibility: public
+    used_by:
+      - career-reference
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Reference list. GitHub metadata exposes no recognized license; do not treat contents as freely reusable beyond what the upstream license/terms actually permit."
+
+  - repo: alex199711/awesome-selfhosted
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: awesome-selfhosted/awesome-selfhosted
+    license: CC-BY-SA-3.0
+    visibility: public
+    used_by:
+      - open-source-radar
+      - selfhosted-discovery
+      - ez-maker
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Important discovery source. Prefer using upstream data/index as a source rather than modifying the fork unless contributing upstream."
+
+  - repo: alex199711/diagram-design
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: cathrynlavery/diagram-design
+    license: MIT
+    visibility: public
+    used_by:
+      - ai-design-stack
+      - content
+      - documentation
+    agent_callable: true
+    recommended_action: adapter
+    notes: "High-value upstream Agent Skill. EZ-specific diagram selection/orchestration should live in an owned workflow/adapter layer."
+
+  - repo: alex199711/Filee
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: KnifeLemon/Filee
+    license: MIT
+    visibility: public
+    used_by:
+      - local-file-tools
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Useful local file-conversion application. Promote to an adapter only if a stable CLI/API becomes part of an Agent workflow."
+
+  - repo: alex199711/filmcraft
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: storytold/filmcraft
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - video-reference
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Video-editor reference. Current EZ content stack has more directly Agent-oriented candidates, so keep this as reference unless it gains a unique role."
+
+  - repo: alex199711/genoffice
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: genspark-ai/genoffice
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - document-automation
+      - ai-agent
+      - personal-workspace
+    agent_callable: true
+    recommended_action: adapter
+    notes: "Strong CLI/Agent-skill candidate for document creation/editing. Keep upstream clean and add EZ-specific document workflows separately."
+
+  - repo: alex199711/openscreen
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: getopenscreen/openscreen
+    license: MIT
+    visibility: public
+    used_by:
+      - ez-maker
+      - content
+      - product-demo
+    agent_callable: false
+    recommended_action: adapter
+    notes: "Recording/demo infrastructure candidate. If automated control is required, create an EZ recording adapter rather than modifying upstream identity."
+
+  - repo: alex199711/PageIndex
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: VectifyAI/PageIndex
+    license: MIT
+    visibility: public
+    used_by:
+      - ai-agent
+      - document-retrieval
+      - knowledge-layer
+    agent_callable: true
+    recommended_action: adapter
+    notes: "Vectorless reasoning-based document retrieval upstream. Candidate for a reusable EZ knowledge/document adapter."
+
+  - repo: alex199711/prompt-optimizer
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: linshenkx/prompt-optimizer
+    license: AGPL-3.0-only
+    visibility: public
+    used_by:
+      - ai-agent
+      - prompt-workflow
+    agent_callable: true
+    recommended_action: adapter
+    notes: "MCP-capable prompt optimization upstream. AGPL obligations require explicit review before network-deployed or closed-source integration."
+
+  - repo: alex199711/streambert
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: truelockmc/streambert
+    license: GPL-3.0
+    visibility: public
+    used_by:
+      - media-reference
+    agent_callable: false
+    recommended_action: archive-candidate
+    notes: "Not aligned with current core EZ development priorities; streaming/content-source legality can vary by source and jurisdiction. Keep out of the main public showcase unless a clear lawful use case exists."
+
+  - repo: alex199711/taste-skill
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: Leonxlnx/taste-skill
+    license: MIT
+    visibility: public
+    used_by:
+      - ai-design-stack
+      - frontend-qa
+    agent_callable: true
+    recommended_action: adapter
+    notes: "Core design-quality upstream Skill. Keep upstream source distinct; EZ-specific design policy/orchestration belongs in an owned workflow layer."
+
+  - repo: alex199711/up
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: byoungd/up
+    license: NOASSERTION
+    visibility: public
+    used_by:
+      - learning-reference
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Learning/life-guide reference. License needs manual review before reuse beyond normal upstream reference."
+
+  - repo: alex199711/vercel-skills
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: vercel-labs/skills
+    license: MIT
+    visibility: public
+    used_by:
+      - ai-agent
+      - skill-distribution
+    agent_callable: true
+    recommended_action: index-only
+    notes: "Agent-skill discovery/distribution infrastructure. Prefer consuming upstream; do not present the fork as a proprietary EZ skill registry."
+
+  - repo: alex199711/video-shotcraft
+    layer: L4
+    ownership: fork
+    status: active
+    role: upstream
+    upstream: Vincentwei1021/video-shotcraft
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - content
+      - ez-maker
+      - product-video
+    agent_callable: true
+    recommended_action: adapter
+    notes: "High-value Agent video-production upstream. EZ-specific shot templates, product workflows and brand rules should live in an owned content workflow layer."
+
+  - repo: alex199711/VLX-Seek
+    layer: L4
+    ownership: fork
+    status: maintenance
+    role: upstream
+    upstream: om-ai-lab/VLX-Seek
+    license: Apache-2.0
+    visibility: public
+    used_by:
+      - vision-research
+    agent_callable: false
+    recommended_action: index-only
+    notes: "Vision-language grounding research/reference. Promote to an adapter only after a concrete EZ project depends on it."
+
+phase1_decisions:
+  promote_existing:
+    - alex199711/ez-maker-hardware-agent-platform
+    - alex199711/minimal-desktop-dashboard
+  keep_as_lab:
+    - alex199711/STM32practice
+  adapter_candidates:
+    - alex199711/artemis
+    - alex199711/exo
+    - alex199711/diagram-design
+    - alex199711/genoffice
+    - alex199711/openscreen
+    - alex199711/PageIndex
+    - alex199711/prompt-optimizer
+    - alex199711/taste-skill
+    - alex199711/video-shotcraft
+  index_only_or_upstream_first:
+    - alex199711/LinkSwift
+    - alex199711/agent-browser
+    - alex199711/everything
+    - alex199711/ai-agent-book
+    - alex199711/awesome-remote-job
+    - alex199711/awesome-selfhosted
+    - alex199711/Filee
+    - alex199711/filmcraft
+    - alex199711/up
+    - alex199711/vercel-skills
+    - alex199711/VLX-Seek
+  archive_candidates_without_action_yet:
+    - alex199711/streambert
+
+next_phase:
+  issue: "Phase 2 — GitHub Profile + human/machine entrypoints"
+  goals:
+    - "Create a human-readable GitHub Profile landing page."
+    - "Create a canonical machine-readable registry location independent of a single product repo."
+    - "Expose Products / Components / Labs / Upstream / Archive navigation."
+    - "Define the promotion path from upstream reference -> adapter/component -> product."
