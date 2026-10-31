@@ -1,0 +1,39 @@
+schema: ez-repo/v1
+name: minimal-desktop-dashboard
+type: product
+layer: L1
+ownership: original
+status: active
+stability: alpha
+upstream: null
+license: MIT
+capabilities:
+  - desktop-dashboard
+  - note-editing
+  - time-dial
+  - resizable-layout
+  - windows-system-integration
+interfaces:
+  - electron
+  - windows-desktop
+  - local-ui
+entrypoints:
+  readme: README.md
+  agent: AGENTS.md
+  changelog: null
+development:
+  package_manager: npm
+  install: npm install
+  dev: npm run dev
+  check: npm run check
+  lint: npm run lint
+  build: npm run build
+  package_dir: npm run pack
+  package_installer: npm run dist
+release:
+  policy: semver
+  current_package_version: 0.0.0
+  stable_tag: null
+registry:
+  canonical: pending
+  temporary: .ez/repository-registry.yaml
